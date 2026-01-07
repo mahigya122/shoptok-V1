@@ -5,9 +5,11 @@ import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import Avatar from "./Avatar";
 import ShareSheet from "./ShareSheet";
+import CommentsModal from './CommentsModal';
 import { useToast } from "./Toast";
 import { likeVideo, commentVideo } from "../services/api";
 import { useUserStore } from "../store/userStore";
+import { useLocalInteractions } from "../store/localInteractions";
 import { track } from "../services/analytics";
 
 export default function VideoCard({ item, onAddToCart, onFollow, isActive, height = 680 }: any) {
@@ -48,12 +50,18 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
           ]).start();
         })
         .catch((e) => console.warn(e));
+      // update local reactions immediately for responsiveness
+      try {
+        useLocalInteractions.getState().addReaction(item.id, '❤');
+      } catch (e) {}
     } else {
       // single tap -> toggle play
       setPlaying((p) => !p);
     }
     lastTap.current = now;
   };
+
+  const [commentsOpen, setCommentsOpen] = React.useState(false);
 
   const onPressIn = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
@@ -104,6 +112,8 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
               await likeVideo(item.id, userId);
               show("Liked");
               track("like", userId, { video_id: item.id });
+                // optimistic local reaction
+                useLocalInteractions.getState().addReaction(item.id, '❤');
             } catch (e) {
               console.warn("like failed", e);
             }
@@ -113,7 +123,8 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
           <Pressable onPress={async () => {
             if (!userId) { show("Sign in to comment"); return; }
             try {
-              await commentVideo(item.id, userId, "🔥");
+                useLocalInteractions.getState().addComment(item.id, { id: Math.random().toString(36).slice(2), userId, text: '🔥', createdAt: new Date().toISOString() });
+                await commentVideo(item.id, userId, "🔥");
               show("Commented");
               track("comment", userId, { video_id: item.id });
             } catch (e) {
@@ -122,6 +133,7 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
           }} style={styles.actionBtn}>
             <Text style={styles.action}>💬 {item.comments_count ?? 0}</Text>
           </Pressable>
+          <Pressable onPress={() => setCommentsOpen(true)} style={styles.actionBtn}><Text style={styles.action}>Open</Text></Pressable>
           <ShareSheet url={`https://shoptok.app/video/${item.id}`} title={item.caption || "Check this out!"} />
         </View>
 
@@ -146,6 +158,7 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
         )}
       </View>
       <Toast />
+      <CommentsModal visible={commentsOpen} videoId={item.id} onClose={() => setCommentsOpen(false)} />
       <Animated.View pointerEvents="none" style={[styles.heartWrap, { transform: [{ scale: heartScale }], opacity: heartOpacity }]}>
         <Text style={styles.heart}>❤</Text>
       </Animated.View>

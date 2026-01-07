@@ -5,9 +5,9 @@
     "scheme": "shoptok",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/app-icon.png",
+    "icon": "./assets/images/icon.png",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0B0B0D"
     },
@@ -24,13 +24,13 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
         "backgroundColor": "#0B0B0D"
       },
       "package": "com.shoptok.app"
     },
     "plugins": [
-      "expo-router",
       [
         "@stripe/stripe-react-native",
         {
@@ -42,7 +42,11 @@
     "extra": {
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID"
-      }
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "https://ofgnokinhgktcbqyeowt.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mZ25va2luaGdrdGNicXllb3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5ODUwMzAsImV4cCI6MjA4MTU2MTAzMH0.Z5D9ZbEOmZfKGlVFUuKTXvoDv3Wcfs_9tmb52LXF_f8",
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_mk_1SfOLs7Ltx2rn0BWULQm8WMG",
+      "RECOMMENDATION_FUNCTION_URL": "https://ofgnokinhgktcbqyeowt.supabase.co/functions/v1/recommend"
     }
   }
 }

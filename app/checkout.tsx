@@ -4,7 +4,21 @@ import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import { useCartStore } from "../store/cartStore";
 import { useUserStore } from "../store/userStore";
-import { initPaymentSheet, presentPaymentSheet } from "@stripe/stripe-react-native";
+import { Platform } from "react-native";
+
+// Stripe native functions are only available on native platforms. Import dynamically at runtime.
+let initPaymentSheet: any = async () => ({ error: { code: 'not_available', message: 'Stripe not available on web' } });
+let presentPaymentSheet: any = async () => ({ error: { code: 'not_available', message: 'Stripe not available on web' } });
+if (Platform.OS !== 'web') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const stripe = require('@stripe/stripe-react-native');
+    initPaymentSheet = stripe.initPaymentSheet;
+    presentPaymentSheet = stripe.presentPaymentSheet;
+  } catch (e) {
+    console.warn('Stripe native module not available:', e?.message ?? e);
+  }
+}
 import { createOrder } from "../services/api";
 
 export default function CheckoutScreen() {
@@ -41,7 +55,7 @@ export default function CheckoutScreen() {
           return;
         }
 
-        const { error } = await initPaymentSheet({
+          const { error } = await initPaymentSheet({
           merchantDisplayName: "Shoptok",
           customerId: customer,
           customerEphemeralKeySecret: ephemeralKey,

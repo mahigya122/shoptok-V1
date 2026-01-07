@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Stack, Redirect } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { colors } from "../constants/colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
 import { supabase } from "../services/api";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Constants from "expo-constants";
-import { StripeProvider } from '@stripe/stripe-react-native';
+import { Platform } from 'react-native';
 
 export default function Layout() {
   const [loading, setLoading] = useState(true);
@@ -63,21 +63,67 @@ export default function Layout() {
     );
   }
 
-  // ❌ Not logged in → redirect to login
+  const router = useRouter();
+
+  // ❌ Not logged in → programmatic redirect to login
+  useEffect(() => {
+    if (!loading && !user) {
+      try {
+        router.replace("/login");
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [loading, user, router]);
   if (!user) {
-    return <Redirect href="/login" />;
+    return null;
   }
 
   // ✅ Logged in → show app (UNCHANGED STRUCTURE)
   const extras = (Constants.expoConfig && (Constants.expoConfig.extra || {})) || (Constants.manifest && Constants.manifest.extra) || {};
   const stripeKey = extras.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
+  // Normalize `Stack` in case the router export is wrapped under a `.default` property
+  const StackComponent: any = (Stack && typeof Stack === 'object' && 'default' in Stack) ? (Stack as any).default : Stack;
+  // Debugging: log a tiny summary if something is unexpected
+  try {
+    // eslint-disable-next-line no-console
+    console.log('DEBUG Layout:', { StackIsFunction: typeof StackComponent === 'function', StackKeys: Stack && typeof Stack === 'object' ? Object.keys(Stack) : null });
+  } catch (e) {}
+
+  // Load StripeProvider only on native platforms to avoid importing native-only modules on web.
+  let StripeProviderComp: any = ({ children }: any) => children;
+  if (Platform.OS !== 'web') {
+    try {
+      // require dynamically so bundlers don't include native-only code for web
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require('@stripe/stripe-react-native');
+      StripeProviderComp = mod?.StripeProvider ?? StripeProviderComp;
+    } catch (e) {
+      // if stripe isn't installed for native env, ignore — app can run without payments in dev
+      console.warn('Stripe native module not available:', e?.message ?? e);
+    }
+  }
+
+  // TEMP: render a simple placeholder while debugging element-type issues
+  const DEBUG_RENDER_PLAINTEXT = true;
+  if (DEBUG_RENDER_PLAINTEXT) {
+    return (
+      <ErrorBoundary>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>Shoptok (debug mode)</Text>
+          <Text style={{ color: colors.textMuted, marginTop: 8 }}>If you see this, the app renders.</Text>
+        </SafeAreaView>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
-      <StripeProvider publishableKey={stripeKey || ""}>
+      <StripeProviderComp publishableKey={stripeKey || ""}>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flex: 1 }}>
-            <Stack
+            <StackComponent
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.background },
@@ -85,7 +131,7 @@ export default function Layout() {
             />
           </View>
         </SafeAreaView>
-      </StripeProvider>
+      </StripeProviderComp>
     </ErrorBoundary>
   );
 }

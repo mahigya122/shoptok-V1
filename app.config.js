@@ -20,5 +20,7 @@ module.exports = ({ config: expoConfig }) => {
       RECOMMENDATION_FUNCTION_URL: process.env.RECOMMENDATION_FUNCTION_URL,
       EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     },
+    // Limit platforms to native only to avoid web bundling issues during development
+    platforms: ["ios", "android"],
   };
 };

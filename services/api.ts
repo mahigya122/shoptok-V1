@@ -46,6 +46,36 @@ export async function fetchFeedVideos(limit = 20) {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
+  // If the project doesn't have seeded data yet, return a small local mock
+  if (!data || (Array.isArray(data) && data.length === 0)) {
+    const mock = [
+      {
+        id: "mock-1",
+        title: "Cozy winter jacket",
+        description: "Warm, stylish jacket for winter",
+        video_url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+        poster: "./assets/images/react-logo.png",
+        product_id: null,
+        brand_id: null,
+        created_at: new Date().toISOString(),
+        products: [],
+        brands: [],
+      },
+      {
+        id: "mock-2",
+        title: "Streetwear sneakers",
+        description: "Comfortable sneakers with great grip",
+        video_url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        poster: "./assets/images/partial-react-logo.png",
+        product_id: null,
+        brand_id: null,
+        created_at: new Date().toISOString(),
+        products: [],
+        brands: [],
+      }
+    ];
+    return mock as any;
+  }
   return data;
 }
 
@@ -152,6 +182,28 @@ export async function createOrder(userId: string, amount: number, currency = "US
     stripe_payment_intent_id: paymentIntentId,
     status: "created"
   }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// Upload a file (video or image) to Supabase Storage and return public URL
+export async function uploadToStorage(bucket: string, path: string, file: any, contentType?: string) {
+  // file can be a Blob, File, or base64 data URL depending on environment
+  try {
+    // If running in React Native with expo-file-system, file.uri is expected
+    const { data, error } = await supabase.storage.from(bucket).upload(path, file, { contentType, upsert: false });
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+    return urlData.publicUrl;
+  } catch (e) {
+    console.warn('uploadToStorage failed', e);
+    throw e;
+  }
+}
+
+// Create video row in `videos` table after upload
+export async function createVideoRow(video: any) {
+  const { data, error } = await supabase.from('videos').insert(video).select().single();
   if (error) throw error;
   return data;
 }

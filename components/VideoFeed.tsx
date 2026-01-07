@@ -3,6 +3,7 @@ import { View, Text, RefreshControl, useWindowDimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import VideoCard from "./VideoCard";
 import { fetchFeedVideos, followBrand } from "../services/api";
+import { useLocalInteractions } from "../store/localInteractions";
 import { useUserStore } from "../store/userStore";
 import { useCartStore } from "../store/cartStore";
 import { track } from "../services/analytics";
@@ -35,6 +36,20 @@ export default function VideoFeed({ type = "home" }: { type?: "home" | "followin
     load(mounted);
     return () => { mounted.current = false; };
   }, [type]);
+
+  // Merge local uploads (created in-app) at the front of the feed
+  const uploads = useLocalInteractions((s) => s.uploads);
+
+  useEffect(() => {
+    if (uploads && uploads.length) {
+      setItems((prev) => {
+        // avoid duplicating by id
+        const ids = new Set(prev.map((p) => p.id));
+        const newOnes = uploads.filter((u) => !ids.has(u.id));
+        return [...newOnes, ...prev];
+      });
+    }
+  }, [uploads]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

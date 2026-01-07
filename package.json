@@ -14,7 +14,7 @@
     "@shopify/flash-list": "2.0.2",
     "@stripe/stripe-react-native": "0.50.3",
     "@supabase/supabase-js": "^2.47.7",
-    "dayjs": "^1.11.11",
+    "dayjs": "^11.11.11",
     "expo": "54.0.30",
     "expo-av": "~16.0.8",
     "expo-crypto": "^15.0.8",

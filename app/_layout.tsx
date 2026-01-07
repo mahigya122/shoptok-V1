@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import { colors } from "../constants/colors";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
 import { supabase } from "../services/api";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -105,34 +105,23 @@ export default function Layout() {
     }
   }
 
-  // TEMP: render a simple placeholder while debugging element-type issues
-  const DEBUG_RENDER_PLAINTEXT = true;
-  if (DEBUG_RENDER_PLAINTEXT) {
-    return (
-      <ErrorBoundary>
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>Shoptok (debug mode)</Text>
-          <Text style={{ color: colors.textMuted, marginTop: 8 }}>If you see this, the app renders.</Text>
-        </SafeAreaView>
-      </ErrorBoundary>
-    );
-  }
-
   return (
-    <ErrorBoundary>
-      <StripeProviderComp publishableKey={stripeKey || ""}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-          <View style={{ flex: 1 }}>
-            <StackComponent
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background },
-              }}
-            />
-          </View>
-        </SafeAreaView>
-      </StripeProviderComp>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <StripeProviderComp publishableKey={stripeKey || ""}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+            <View style={{ flex: 1 }}>
+              <StackComponent
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.background },
+                }}
+              />
+            </View>
+          </SafeAreaView>
+        </StripeProviderComp>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

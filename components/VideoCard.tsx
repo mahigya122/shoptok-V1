@@ -1,6 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, Image, Animated } from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
 import { Video, ResizeMode } from "expo-av";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import Avatar from "./Avatar";
@@ -9,18 +13,22 @@ import CommentsModal from './CommentsModal';
 import { useToast } from "./Toast";
 import { likeVideo, commentVideo } from "../services/api";
 import { useUserStore } from "../store/userStore";
+import { useCartStore } from "../store/cartStore";
 import { useLocalInteractions } from "../store/localInteractions";
 import { track } from "../services/analytics";
 
-export default function VideoCard({ item, onAddToCart, onFollow, isActive, height = 680 }: any) {
+export default function VideoCard({ item, onAddToCart, onFollow, isActive }: any) {
   const videoRef = useRef<Video>(null);
   const [isPlaying, setPlaying] = useState(!!isActive);
+  const headerHeight = useHeaderHeight();
+  const height = Dimensions.get("window").height - headerHeight;
   const [muted, setMuted] = useState(true);
   const userId = useUserStore((s) => s.userId);
   const { show, Toast } = useToast();
-  const scale = useRef(new Animated.Value(1)).current;
-  const heartScale = useRef(new Animated.Value(0)).current;
-  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
+  const addToCart = useCartStore((s) => s.add);
+  const heartScale = useSharedValue(0);
+  const heartOpacity = useSharedValue(0);
 
   useEffect(() => {
     setPlaying(!!isActive);
@@ -30,46 +38,64 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
     if (item?.id) track("view", userId, { video_id: item.id });
   }, [userId, item?.id]);
 
-  // simple double-tap detection for like
-  const lastTap = useRef<number>(0);
-  const onTap = () => {
-    const now = Date.now();
-    if (now - lastTap.current < 300) {
-      // double-tap -> like
-      if (!userId) { show("Sign in to like"); return; }
-      likeVideo(item.id, userId)
-        .then(() => {
-          show("Liked");
-          track("like", userId, { video_id: item.id });
-          // trigger heart animation
-          heartOpacity.setValue(1);
-          heartScale.setValue(0.5);
-          Animated.parallel([
-            Animated.spring(heartScale, { toValue: 1.2, useNativeDriver: true }),
-            Animated.timing(heartOpacity, { toValue: 0, duration: 700, useNativeDriver: true }),
-          ]).start();
-        })
-        .catch((e) => console.warn(e));
-      // update local reactions immediately for responsiveness
-      try {
-        useLocalInteractions.getState().addReaction(item.id, '❤');
-      } catch (e) {}
-    } else {
-      // single tap -> toggle play
-      setPlaying((p) => !p);
+  const handleLike = () => {
+    if (!userId) {
+      show("Sign in to like");
+      return;
     }
-    lastTap.current = now;
+    likeVideo(item.id, userId)
+      .then(() => {
+        runOnJS(show)("Liked");
+        runOnJS(track)("like", userId, { video_id: item.id });
+        heartOpacity.value = 1;
+        heartScale.value = 0.5;
+        heartScale.value = withSpring(1.2);
+        heartOpacity.value = withTiming(0, { duration: 700 });
+      })
+      .catch((e) => console.warn(e));
+    try {
+      useLocalInteractions.getState().addReaction(item.id, "❤");
+    } catch (e) {}
   };
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      handleLike();
+    });
+
+  const singleTap = Gesture.Tap().onStart(() => {
+    setPlaying((p) => !p);
+  });
 
   const [commentsOpen, setCommentsOpen] = React.useState(false);
 
-  const onPressIn = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
-  const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+  const scale = useSharedValue(1);
+  const longPress = Gesture.LongPress()
+    .onBegin(() => {
+      scale.value = withSpring(0.95);
+    })
+    .onEnd(() => {
+      scale.value = withSpring(1);
+    });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const animatedHeartStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: heartScale.value }],
+      opacity: heartOpacity.value,
+    };
+  });
 
   return (
-    <Animated.View style={[styles.container, { height }, { transform: [{ scale }] }]}> 
+    <Animated.View style={[styles.container, { height }, animatedStyle]}>
       {item?.video_url ? (
-        <Pressable onPress={onTap} onPressIn={onPressIn} onPressOut={onPressOut} style={{ flex: 1 }}>
+        <GestureDetector gesture={Gesture.Exclusive(longPress, doubleTap, singleTap)}>
           <Video
             ref={videoRef}
             source={{ uri: item.video_url }}
@@ -83,11 +109,11 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
             progressUpdateIntervalMillis={200}
             useNativeControls={false}
           />
-        </Pressable>
+        </GestureDetector>
       ) : (
         <View style={[styles.video, { backgroundColor: "#000" }]} />
       )}
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { paddingBottom: insets.bottom + spacing.md }]}>
         <View style={styles.header}>
           <Avatar url={item.brands?.avatar_url} followed={false} />
           <View style={{ marginLeft: spacing.sm, flex: 1 }}>
@@ -148,10 +174,18 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
               <Text style={styles.productTitle}>{item.products?.title ?? "Untitled"}</Text>
               <Text style={styles.productPrice}>${(Number(item.products?.price) || 0).toFixed(2)}</Text>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => {
-              if (!userId) { show("Sign in to add to cart"); return; }
-              onAddToCart?.(item.products);
-            }} android_ripple={{ color: '#00000010' }}>
+            <Pressable
+              style={styles.addBtn}
+              onPress={() => {
+                if (!userId) {
+                  show("Sign in to add to cart");
+                  return;
+                }
+                addToCart(userId, item.products);
+                show("Added to cart");
+              }}
+              android_ripple={{ color: "#00000010" }}
+            >
               <Text style={styles.addText}>Add</Text>
             </Pressable>
           </View>
@@ -159,7 +193,7 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive, heigh
       </View>
       <Toast />
       <CommentsModal visible={commentsOpen} videoId={item.id} onClose={() => setCommentsOpen(false)} />
-      <Animated.View pointerEvents="none" style={[styles.heartWrap, { transform: [{ scale: heartScale }], opacity: heartOpacity }]}>
+      <Animated.View pointerEvents="none" style={[styles.heartWrap, animatedHeartStyle]}>
         <Text style={styles.heart}>❤</Text>
       </Animated.View>
     </Animated.View>

@@ -38,7 +38,13 @@ export default function CheckoutScreen() {
       }
 
       try {
-        const res = await fetch("https://YOUR_SERVER/create-payment-intent", {
+        const recommendUrl = process.env.RECOMMENDATION_FUNCTION_URL;
+        if (!recommendUrl) {
+          console.warn("RECOMMENDATION_FUNCTION_URL is not set");
+          return;
+        }
+        const paymentIntentUrl = recommendUrl.replace("recommend", "create-payment-intent");
+        const res = await fetch(paymentIntentUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount: Math.round(total * 100), currency: "usd" })
@@ -66,13 +72,6 @@ export default function CheckoutScreen() {
         if (mounted && !error) setReady(true);
 
         // Optionally create an order record now; only do so if we have a paymentIntent and a user
-        if (userId && paymentIntent) {
-          try {
-            await createOrder(userId, total, "USD", paymentIntent);
-          } catch (e) {
-            console.warn("createOrder failed", e);
-          }
-        }
       } catch (err) {
         console.warn("Payment setup failed", err);
       }
@@ -89,6 +88,13 @@ export default function CheckoutScreen() {
       if (error) {
         console.warn("Payment failed", error);
       } else {
+        if (userId) {
+          try {
+            await createOrder(userId, total, "USD", "paid");
+          } catch (e) {
+            console.warn("createOrder failed", e);
+          }
+        }
         // Success handled by Stripe webhook; optionally navigate to success screen
       }
     } catch (err) {

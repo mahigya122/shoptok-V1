@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Dimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import VideoCard from "../../components/VideoCard";
 import { useUserStore } from "../../store/userStore";
 import { fetchForYou } from "../../services/api";
-import { spacing } from "../../constants/spacing";
-import { colors } from "../../constants/colors";
+import { useHeaderHeight } from "@react-navigation/elements";
 
 export default function ForYouScreen() {
   const [items, setItems] = useState<any[]>([]);
   const userId = useUserStore((s) => s.userId);
+  const headerHeight = useHeaderHeight();
 
   useEffect(() => {
     let mounted = true;
@@ -31,14 +31,15 @@ export default function ForYouScreen() {
   }, [userId]);
 
   return (
-    <View style={{ flex: 1 }}>
-      {items.length === 0 ? (
-        <View style={{ padding: spacing.md }}>
-          <Text style={{ color: colors.textMuted }}>No recommendations yet.</Text>
-        </View>
-      ) : (
-        <FlashList data={items} estimatedItemSize={680} keyExtractor={(item) => item.id} renderItem={({ item }) => <VideoCard item={item} />} />
-      )}
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <FlashList
+        data={items}
+        estimatedItemSize={Dimensions.get("window").height - headerHeight}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <VideoCard item={item} />}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }

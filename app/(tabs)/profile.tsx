@@ -15,9 +15,13 @@ export default function ProfileScreen() {
       const uid = await getCurrentUserId();
       if (!uid) return;
       const { data } = await supabase.from("user_profiles").select("*").eq("id", uid).single();
-      setProfile(data);
-      setUsername(data?.username ?? "");
-      setFullName(data?.full_name ?? "");
+      if (data) {
+        setProfile(data);
+        setUsername(data.username ?? "");
+        setFullName(data.full_name ?? "");
+      } else {
+        setProfile(null);
+      }
     })();
   }, []);
 
@@ -33,7 +37,9 @@ export default function ProfileScreen() {
       <TextInput value={username} onChangeText={setUsername} style={styles.input} placeholder="username" placeholderTextColor={colors.textMuted} />
       <Text style={styles.label}>Full name</Text>
       <TextInput value={fullName} onChangeText={setFullName} style={styles.input} placeholder="Full name" placeholderTextColor={colors.textMuted} />
-      <TouchableOpacity style={styles.btn} onPress={save}><Text style={styles.btnText}>Save</Text></TouchableOpacity>
+      <TouchableOpacity style={styles.btn} onPress={save}>
+        <Text style={styles.btnText}>{profile ? "Save" : "Create Profile"}</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={[styles.btn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={signOut}><Text style={{ color: colors.text }}>Sign out</Text></TouchableOpacity>
     </View>
   );

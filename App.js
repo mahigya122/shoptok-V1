@@ -1,6 +1,7 @@
 // Polyfills required for supabase-js and React Native runtime.
 // Load native-only polyfills conditionally so web bundling doesn't fail.
 import { Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 try {
 	// react-native-get-random-values is a native module — require dynamically using a variable
@@ -36,11 +37,11 @@ try {
 // NOTE: router entry removed temporarily for debugging to ensure
 // the app can render without expo-router causing a blank screen.
 
-import React, { useState } from 'react';
-import { SafeAreaView, StatusBar, View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import VideoFeed from './components/VideoFeed';
-import UploadScreen from './components/UploadScreen';
+import { useState } from 'react';
+import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ProfileScreen from './components/ProfileScreen';
+import UploadScreen from './components/UploadScreen';
+import VideoFeed from './components/VideoFeed';
 import { colors } from './constants/colors';
 
 export default function App() {
@@ -51,15 +52,17 @@ export default function App() {
 	if (tab === 'profile') Screen = <ProfileScreen />;
 
 	return (
-		<SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-			<StatusBar barStyle="light-content" />
-			<View style={{ flex: 1 }}>{Screen}</View>
-			<View style={styles.bottom}>
-				<TabButton label="Feed" active={tab === 'feed'} onPress={() => setTab('feed')} />
-				<TabButton label="Upload" active={tab === 'upload'} onPress={() => setTab('upload')} />
-				<TabButton label="Profile" active={tab === 'profile'} onPress={() => setTab('profile')} />
-			</View>
-		</SafeAreaView>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+				<StatusBar barStyle="light-content" />
+				<View style={{ flex: 1 }}>{Screen}</View>
+				<View style={styles.bottom}>
+					<TabButton label="Feed" active={tab === 'feed'} onPress={() => setTab('feed')} />
+					<TabButton label="Upload" active={tab === 'upload'} onPress={() => setTab('upload')} />
+					<TabButton label="Profile" active={tab === 'profile'} onPress={() => setTab('profile')} />
+				</View>
+			</SafeAreaView>
+		</GestureHandlerRootView>
 	);
 }
 

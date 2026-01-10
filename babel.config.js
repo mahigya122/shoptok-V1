@@ -12,7 +12,7 @@ module.exports = function (api) {
           },
         },
       ],
-      'react-native-reanimated/plugin', // This must be the last plugin
+      'react-native-reanimated/plugin', // MUST be last
     ],
   };
 };

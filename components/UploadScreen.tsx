@@ -27,39 +27,42 @@ export default function UploadScreen() {
   };
 
   const pickAndUpload = async () => {
-    // Try to use expo-image-picker if available
     let ImagePicker: any = null;
     try {
-      // dynamic require so web doesn't break
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       ImagePicker = require('expo-image-picker');
     } catch (e) {
       ImagePicker = null;
     }
 
     if (!ImagePicker) {
-      Alert.alert('Missing dependency', 'Please install expo-image-picker and restart: npm install expo-image-picker');
+      Alert.alert('Missing dependency', 'Please install expo-image-picker: npm install expo-image-picker');
       return;
     }
 
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, quality: 0.8 });
     if (res.cancelled) return;
 
-    // In expo, res.uri is the local file path. We'll upload directly to Supabase storage.
     const uri = res.uri;
-    const filename = 'videos/' + (new Date().toISOString().replace(/[:.]/g, '-')) + '-' + uri.split('/').pop();
+    const filename = 'videos/' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + uri.split('/').pop();
+
     try {
-      // fetch the file as blob
       const resp = await fetch(uri);
       const blob = await resp.blob();
       const publicUrl = await api.uploadToStorage('videos', filename, blob, res.type || 'video/mp4');
-      // create row
-      const row = await api.createVideoRow({ title, caption, video_url: publicUrl, poster_url: null, created_at: new Date().toISOString() });
+
+      const row = await api.createVideoRow({
+        title,
+        caption,
+        video_url: publicUrl,
+        poster_url: null,
+        created_at: new Date().toISOString(),
+      });
+
       useLocalInteractions.getState().addUpload(row);
       Alert.alert('Uploaded', 'Video uploaded and added to feed');
       setTitle(''); setCaption('');
     } catch (e) {
-      console.warn('upload failed', e);
+      console.warn('Upload failed', e);
       Alert.alert('Upload failed', String(e));
     }
   };
@@ -70,7 +73,8 @@ export default function UploadScreen() {
       <TextInput value={title} onChangeText={setTitle} placeholder="Title" style={styles.input} />
       <TextInput value={caption} onChangeText={setCaption} placeholder="Caption" style={styles.input} />
       <Button title="Add sample video to feed" onPress={createMockUpload} />
-      <Text style={styles.note}>This creates a local mock upload that appears in the feed immediately. Replace with a proper picker/upload later.</Text>
+      <Text style={styles.note}>This creates a local mock upload that appears in the feed immediately.</Text>
+      <Button title="Pick & Upload Video" onPress={pickAndUpload} />
     </View>
   );
 }

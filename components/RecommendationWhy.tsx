@@ -1,7 +1,11 @@
 import React from "react";
 import { Body } from "./UI";
 
-export default function RecommendationWhy({ reasons }: { reasons: string[] }) {
+interface RecommendationWhyProps {
+  reasons?: string[];
+}
+
+export default function RecommendationWhy({ reasons }: RecommendationWhyProps) {
   if (!reasons?.length) return null;
   return <Body muted>Because: {reasons.join(", ")}</Body>;
 }

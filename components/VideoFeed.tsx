@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { View, Text, RefreshControl, useWindowDimensions } from "react-native";
-import { FlashList } from "@shopify/flash-list";
-import VideoCard from "./VideoCard";
+import { FlashList, FlashListRef, ListRenderItemInfo } from "@shopify/flash-list";
+import VideoCard, { VideoItem } from "./VideoCard";
 import { fetchFeedVideos, followBrand } from "../services/api";
 import { useLocalInteractions } from "../store/localInteractions";
 import { useUserStore } from "../store/userStore";
@@ -9,27 +9,29 @@ import { useCartStore } from "../store/cartStore";
 import { track } from "../services/analytics";
 import { spacing } from "../constants/spacing";
 import { colors } from "../constants/colors";
+import { Product } from "../types/product";
 
 export default function VideoFeed({ type = "home" }: { type?: "home" | "following" | "forYou" }) {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<VideoItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const userId = useUserStore((s) => s.userId);
   const addToCart = useCartStore((s) => s.add);
   const window = useWindowDimensions();
-  const listRef = useRef<any>(null);
+  const listRef = useRef<FlashListRef<VideoItem>>(null);
 
-  async function load(mounted: { current: boolean }) {
+  // Load feed
+  const load = async (mounted: { current: boolean }) => {
     if (type === "home") {
       try {
-        const data = await fetchFeedVideos(20);
+        const data = await fetchFeedVideos(20); // Supabase backend
         if (mounted.current) setItems(data ?? []);
       } catch (err) {
         console.warn("Failed to load feed videos", err);
         if (mounted.current) setItems([]);
       }
     }
-  }
+  };
 
   useEffect(() => {
     const mounted = { current: true };
@@ -37,13 +39,11 @@ export default function VideoFeed({ type = "home" }: { type?: "home" | "followin
     return () => { mounted.current = false; };
   }, [type]);
 
-  // Merge local uploads (created in-app) at the front of the feed
+  // Merge Supabase uploads at top
   const uploads = useLocalInteractions((s) => s.uploads);
-
   useEffect(() => {
-    if (uploads && uploads.length) {
+    if (uploads.length) {
       setItems((prev) => {
-        // avoid duplicating by id
         const ids = new Set(prev.map((p) => p.id));
         const newOnes = uploads.filter((u) => !ids.has(u.id));
         return [...newOnes, ...prev];
@@ -56,17 +56,12 @@ export default function VideoFeed({ type = "home" }: { type?: "home" | "followin
     try {
       const data = await fetchFeedVideos(20);
       setItems(data ?? []);
-    } catch (e) {
-      console.warn("refresh failed", e);
-    }
+    } catch (e) { console.warn("refresh failed", e); }
     setRefreshing(false);
   }, [type]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems && viewableItems.length) {
-      const idx = viewableItems[0].index ?? 0;
-      setCurrentIndex(idx);
-    }
+    if (viewableItems && viewableItems.length) setCurrentIndex(viewableItems[0].index ?? 0);
   }).current;
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
@@ -78,38 +73,20 @@ export default function VideoFeed({ type = "home" }: { type?: "home" | "followin
           <Text style={{ color: colors.textMuted }}>No videos yet.</Text>
         </View>
       ) : (
-        <FlashList
+        <FlashList<VideoItem>
           ref={listRef}
           data={items}
-          estimatedItemSize={window.height}
           pagingEnabled
           decelerationRate="fast"
           snapToInterval={window.height}
           showsVerticalScrollIndicator={false}
           keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
+          renderItem={({ item, index }: ListRenderItemInfo<VideoItem>) => (
             <VideoCard
               item={item}
               isActive={index === currentIndex}
-              height={window.height}
-              onAddToCart={async (product: any) => {
-                if (!userId) return;
-                try {
-                  await addToCart(userId, product, product.sizes?.[0], product.colors?.[0], 1);
-                  track("cart_add", userId, { product_id: product.id });
-                } catch (e) {
-                  console.warn("add to cart failed", e);
-                }
-              }}
-              onFollow={async (brandId: string) => {
-                if (!userId) return;
-                try {
-                  await followBrand(brandId, userId);
-                  track("follow", userId, { brand_id: brandId });
-                } catch (e) {
-                  console.warn("follow failed", e);
-                }
-              }}
+              onAddToCart={(product: Product) => { if (userId) addToCart(userId, product); }}
+              onFollow={async (brandId) => { if (userId && brandId) await followBrand(brandId, userId); }}
             />
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}

@@ -11,8 +11,19 @@ export const Body = ({ children, muted = false }: { children: React.ReactNode; m
   <Text style={{ color: muted ? colors.textMuted : colors.text, fontSize: 14 }}>{children}</Text>
 );
 
-export const Button = ({ label, onPress, variant = "primary" }: { label: string; onPress: () => void; variant?: "primary" | "ghost" }) => (
-  <TouchableOpacity onPress={onPress} style={[styles.btn, variant === "ghost" ? styles.btnGhost : styles.btnPrimary]}>
+export const Button = ({
+  label,
+  onPress,
+  variant = "primary",
+}: {
+  label: string;
+  onPress: () => void;
+  variant?: "primary" | "ghost";
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[styles.btn, variant === "ghost" ? styles.btnGhost : styles.btnPrimary]}
+  >
     <Text style={variant === "ghost" ? styles.btnGhostText : styles.btnPrimaryText}>{label}</Text>
   </TouchableOpacity>
 );
@@ -29,5 +40,5 @@ const styles = StyleSheet.create({
   btnGhost: { backgroundColor: "transparent", borderColor: colors.border },
   btnPrimaryText: { color: "#111", fontWeight: "700" },
   btnGhostText: { color: colors.text },
-  card: { backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, borderWidth: 1, borderColor: colors.border }
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
 });

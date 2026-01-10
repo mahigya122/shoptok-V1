@@ -13,18 +13,21 @@ export default function FollowingScreen() {
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       try {
         if (!userId) {
-          setItems([]);
+          if (mounted) setItems([]);
           return;
         }
+
         const data = await fetchFollowingFeed(userId);
         if (mounted) setItems(data ?? []);
       } catch (err) {
         console.warn("Failed to load following feed", err);
       }
     })();
+
     return () => {
       mounted = false;
     };
@@ -34,10 +37,18 @@ export default function FollowingScreen() {
     <View style={{ flex: 1 }}>
       {items.length === 0 ? (
         <View style={{ padding: spacing.md }}>
-          <Text style={{ color: colors.textMuted }}>No items to show.</Text>
+          <Text style={{ color: colors.textMuted }}>
+            No items to show.
+          </Text>
         </View>
       ) : (
-        <FlashList data={items} estimatedItemSize={680} keyExtractor={(item) => item.id} renderItem={({ item }) => <VideoCard item={item} />} />
+        <FlashList
+          data={items}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <VideoCard item={item} />
+          )}
+        />
       )}
     </View>
   );

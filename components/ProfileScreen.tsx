@@ -3,8 +3,15 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useLocalInteractions } from '../store/localInteractions';
 import { colors } from '../constants/colors';
 
+interface Upload {
+  id: string;
+  title?: string;
+  caption?: string;
+  created_at: string;
+}
+
 export default function ProfileScreen() {
-  const uploads = useLocalInteractions((s) => s.uploads);
+  const uploads: Upload[] = useLocalInteractions((s) => s.uploads);
 
   return (
     <View style={styles.container}>

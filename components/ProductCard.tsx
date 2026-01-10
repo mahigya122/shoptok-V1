@@ -5,7 +5,11 @@ import { spacing } from "../constants/spacing";
 import { Product } from "../types/product";
 import { useRouter } from "expo-router";
 
-export default function ProductCard({ product }: { product: Product | any }) {
+interface ProductCardProps {
+  product: Product;
+}
+
+export default function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const title = product?.title ?? "Untitled";
   const price = Number(product?.price) || 0;

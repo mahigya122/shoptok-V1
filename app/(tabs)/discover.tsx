@@ -12,14 +12,18 @@ export default function DiscoverScreen() {
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       try {
         const data = await fetchDiscoverProducts();
-        if (mounted && Array.isArray(data)) setProducts(data as Product[]);
+        if (mounted && Array.isArray(data)) {
+          setProducts(data);
+        }
       } catch (err) {
         console.warn("Failed to load discover products", err);
       }
     })();
+
     return () => {
       mounted = false;
     };
@@ -28,13 +32,16 @@ export default function DiscoverScreen() {
   return (
     <View style={{ flex: 1, padding: spacing.md }}>
       {products.length === 0 ? (
-        <Text style={{ color: colors.textMuted }}>No products found.</Text>
+        <Text style={{ color: colors.textMuted }}>
+          No products found.
+        </Text>
       ) : (
         <FlashList
           data={products}
-          estimatedItemSize={120}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ProductCard product={item} />}
+          renderItem={({ item }) => (
+            <ProductCard product={item} />
+          )}
         />
       )}
     </View>

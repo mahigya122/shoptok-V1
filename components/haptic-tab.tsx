@@ -1,10 +1,17 @@
 import React from 'react';
 import { TouchableOpacity, TouchableOpacityProps } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
-// Accept any props (BottomTabBarButtonProps varies across RN versions)
-export const HapticTab: React.FC<any> = ({ children, ...props }) => {
+interface HapticTabProps extends TouchableOpacityProps {}
+
+export const HapticTab: React.FC<HapticTabProps> = ({ children, ...props }) => {
+  const handlePress = (event: any) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (props.onPress) props.onPress(event);
+  };
+
   return (
-    <TouchableOpacity {...(props as TouchableOpacityProps)}>
+    <TouchableOpacity {...props} onPress={handlePress}>
       {children}
     </TouchableOpacity>
   );

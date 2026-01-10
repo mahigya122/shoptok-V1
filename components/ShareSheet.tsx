@@ -10,15 +10,13 @@ export default function ShareSheet({ url, title }: Props) {
       console.warn("ShareSheet: nothing to share");
       return;
     }
-    const options: any = { message: title ?? "", url };
-    // Prefer `react-native-share` on native if available (more features),
-    // otherwise fall back to the built-in `Share` API which works in Expo Go.
+
+    const options: { message?: string; url?: string; social?: any } = { message: title ?? "", url };
+
     try {
       let ShareModule: any = null;
       if (Platform.OS !== "web") {
         try {
-          // dynamic require so bundlers won't try to include native-only module for web
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
           ShareModule = require("react-native-share");
         } catch (e) {
           ShareModule = null;
@@ -26,17 +24,16 @@ export default function ShareSheet({ url, title }: Props) {
       }
 
       if (ShareModule && ShareModule.open) {
-        if (platform && (ShareModule as any).Social) {
+        if (platform && ShareModule.Social) {
           switch (platform) {
-            case "whatsapp": options.social = (ShareModule as any).Social.WHATSAPP; break;
-            case "facebook": options.social = (ShareModule as any).Social.FACEBOOK; break;
-            case "twitter": options.social = (ShareModule as any).Social.TWITTER; break;
-            case "email": options.social = (ShareModule as any).Social.EMAIL; break;
+            case "whatsapp": options.social = ShareModule.Social.WHATSAPP; break;
+            case "facebook": options.social = ShareModule.Social.FACEBOOK; break;
+            case "twitter": options.social = ShareModule.Social.TWITTER; break;
+            case "email": options.social = ShareModule.Social.EMAIL; break;
           }
         }
         await ShareModule.open(options);
       } else {
-        // Fallback to React Native Share (works in Expo Go / without native module)
         const sharePayload: any = {};
         if (options.message) sharePayload.message = options.message;
         if (options.url) sharePayload.url = options.url;
@@ -50,9 +47,5 @@ export default function ShareSheet({ url, title }: Props) {
     }
   };
 
-  return (
-    <>
-      <Button label="Share" onPress={() => share()} />
-    </>
-  );
+  return <Button label="Share" onPress={() => share()} />;
 }

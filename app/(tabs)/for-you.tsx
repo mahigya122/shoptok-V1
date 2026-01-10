@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { View, Dimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import React, { useEffect, useState } from "react";
+import { View } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import VideoCard from "../../components/VideoCard";
-import { useUserStore } from "../../store/userStore";
 import { fetchForYou } from "../../services/api";
-import { useHeaderHeight } from "@react-navigation/elements";
+import { useUserStore } from "../../store/userStore";
 
 export default function ForYouScreen() {
   const [items, setItems] = useState<any[]>([]);
   const userId = useUserStore((s) => s.userId);
-  const headerHeight = useHeaderHeight();
+  const insetsContext = React.useContext(SafeAreaInsetsContext);
+  const insets = insetsContext ?? { top: 0, bottom: 0, left: 0, right: 0 };
 
   useEffect(() => {
     let mounted = true;
@@ -34,7 +35,6 @@ export default function ForYouScreen() {
     <View style={{ flex: 1, backgroundColor: "#000" }}>
       <FlashList
         data={items}
-        estimatedItemSize={Dimensions.get("window").height - headerHeight}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <VideoCard item={item} />}
         pagingEnabled

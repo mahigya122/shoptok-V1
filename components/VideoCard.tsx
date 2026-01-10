@@ -1,31 +1,30 @@
-import React, { useRef, useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
-import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
-import { Video, ResizeMode } from "expo-av";
+import { ResizeMode, Video } from "expo-av";
+import React, { useEffect, useRef, useState } from "react";
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useHeaderHeight } from "@react-navigation/elements";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
-import Avatar from "./Avatar";
-import ShareSheet from "./ShareSheet";
-import CommentsModal from './CommentsModal';
-import { useToast } from "./Toast";
-import { likeVideo, commentVideo } from "../services/api";
-import { useUserStore } from "../store/userStore";
+import { track } from "../services/analytics";
+import { commentVideo, likeVideo } from "../services/api";
 import { useCartStore } from "../store/cartStore";
 import { useLocalInteractions } from "../store/localInteractions";
-import { track } from "../services/analytics";
+import { useUserStore } from "../store/userStore";
+import Avatar from "./Avatar";
+import CommentsModal from './CommentsModal';
+import ShareSheet from "./ShareSheet";
+import { useToast } from "./Toast";
 
 export default function VideoCard({ item, onAddToCart, onFollow, isActive }: any) {
   const videoRef = useRef<Video>(null);
   const [isPlaying, setPlaying] = useState(!!isActive);
-  const headerHeight = useHeaderHeight();
-  const height = Dimensions.get("window").height - headerHeight;
+  const insetsContext = React.useContext(SafeAreaInsetsContext);
+  const insets = insetsContext ?? { top: 0, bottom: 0, left: 0, right: 0 };
+  const height = Dimensions.get("window").height - insets.top;
   const [muted, setMuted] = useState(true);
   const userId = useUserStore((s) => s.userId);
   const { show, Toast } = useToast();
-  const insets = useSafeAreaInsets();
   const addToCart = useCartStore((s) => s.add);
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -126,10 +125,10 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: any
         </View>
 
         <View style={styles.actions}>
-          <Pressable onPress={() => setPlaying(!isPlaying)} style={styles.actionBtn}>
+          <Pressable onPress={() => setPlaying(!isPlaying)} style={styles.action}>
             <Text style={styles.action}>{isPlaying ? "Pause" : "Play"}</Text>
           </Pressable>
-          <Pressable onPress={() => setMuted(!muted)} style={styles.actionBtn}>
+          <Pressable onPress={() => setMuted(!muted)} style={styles.action}>
             <Text style={styles.action}>{muted ? "Unmute" : "Mute"}</Text>
           </Pressable>
           <Pressable onPress={async () => {
@@ -143,7 +142,7 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: any
             } catch (e) {
               console.warn("like failed", e);
             }
-          }} style={styles.actionBtn}>
+          }} style={styles.action}>
             <Text style={styles.action}>♥ {item.likes_count ?? 0}</Text>
           </Pressable>
           <Pressable onPress={async () => {
@@ -156,10 +155,10 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: any
             } catch (e) {
               console.warn("comment failed", e);
             }
-          }} style={styles.actionBtn}>
+          }} style={styles.action}>
             <Text style={styles.action}>💬 {item.comments_count ?? 0}</Text>
           </Pressable>
-          <Pressable onPress={() => setCommentsOpen(true)} style={styles.actionBtn}><Text style={styles.action}>Open</Text></Pressable>
+          <Pressable onPress={() => setCommentsOpen(true)} style={styles.action}><Text style={styles.action}>Open</Text></Pressable>
           <ShareSheet url={`https://shoptok.app/video/${item.id}`} title={item.caption || "Check this out!"} />
         </View>
 

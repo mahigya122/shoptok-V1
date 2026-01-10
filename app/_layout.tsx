@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Stack, useRouter } from "expo-router";
-import { colors } from "../constants/colors";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
-import { supabase } from "../services/api";
-import ErrorBoundary from "../components/ErrorBoundary";
 import Constants from "expo-constants";
-import { Platform } from 'react-native';
+import { Stack, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import ErrorBoundary from "../components/ErrorBoundary";
+import { colors } from "../constants/colors";
+import { supabase } from "../services/api";
 
 export default function Layout() {
   const [loading, setLoading] = useState(true);
@@ -56,10 +56,14 @@ export default function Layout() {
   // ⏳ Wait until auth state is known
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading…</Text>
-      </SafeAreaView>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading…</Text>
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     );
   }
 
@@ -76,7 +80,14 @@ export default function Layout() {
     }
   }, [loading, user, router]);
   if (!user) {
-    return null;
+    // Return wrapped empty state while redirecting
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
   }
 
   // ✅ Logged in → show app (UNCHANGED STRUCTURE)
@@ -106,22 +117,24 @@ export default function Layout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <StripeProviderComp publishableKey={stripeKey || ""}>
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <View style={{ flex: 1 }}>
-              <StackComponent
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: colors.background },
-                }}
-              />
-            </View>
-          </SafeAreaView>
-        </StripeProviderComp>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <StripeProviderComp publishableKey={stripeKey || ""}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+              <View style={{ flex: 1 }}>
+                <StackComponent
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: colors.background },
+                  }}
+                />
+              </View>
+            </SafeAreaView>
+          </StripeProviderComp>
+        </ErrorBoundary>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

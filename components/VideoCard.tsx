@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
 import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
-import { Video, ResizeMode as VideoResizeMode } from "expo-av";
+import { Video, ResizeMode as VideoResizeMode } from 'expo-av';
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

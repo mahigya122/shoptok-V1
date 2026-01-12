@@ -1,22 +1,19 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
-    "jsx": "react-native",
-    "allowJs": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node16",
-    "module": "Node16",
-    "resolveJsonModule": true,
-    "baseUrl": ".",
+    "target": "ESNext",                       // modern JS
+    "lib": ["ES2022", "DOM"],                 // needed for JS + DOM types
+    "module": "ESNext",                        // allow ESM imports
+    "moduleResolution": "node",               // works with RN & Node modules
+    "allowSyntheticDefaultImports": true,     // lets you do default imports for CJS modules
+    "esModuleInterop": true,                  // fixes default import issues
+    "jsx": "react-jsx",                        // React 18 JSX
+    "strict": true,                            // type checking
+    "baseUrl": ".",                            // allows using absolute imports like "@/components/..."
     "paths": {
       "@/*": ["./*"]
     },
-    "noEmit": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true
+    "skipLibCheck": true,                      // skip types for node_modules
+    "noEmit": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "supabase/functions/**"]
+  "exclude": ["node_modules"]
 }

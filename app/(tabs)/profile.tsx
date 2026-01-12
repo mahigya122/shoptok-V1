@@ -9,12 +9,12 @@ import {
 } from "react-native";
 import { colors } from "../../constants/colors";
 import { spacing } from "../../constants/spacing";
-import { supabase as supabaseClient } from "../../services/api";
+import { supabase } from "../../services/api"; // ✅ now exported from api.ts
 import { getCurrentUserId, signOut } from "../../services/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// ✅ fix: explicitly type supabase
-const supabase = supabaseClient as SupabaseClient;
+// ✅ Explicitly type supabase
+const db = supabase as SupabaseClient;
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
@@ -26,7 +26,7 @@ export default function ProfileScreen() {
       const uid = await getCurrentUserId();
       if (!uid) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("user_profiles")
         .select("*")
         .eq("id", uid)
@@ -46,11 +46,17 @@ export default function ProfileScreen() {
     const uid = await getCurrentUserId();
     if (!uid) return;
 
-    await supabase.from("user_profiles").upsert({
+    const { error } = await db.from("user_profiles").upsert({
       id: uid,
       username,
       full_name: fullName,
     });
+
+    if (error) {
+      console.warn("Failed to save profile:", error.message);
+    } else {
+      console.log("Profile saved successfully!");
+    }
   };
 
   return (

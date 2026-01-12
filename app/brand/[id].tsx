@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { supabase } from "../../services/api";
+import { supabase } from "../../lib/supabaseClient";
 import { colors } from "../../constants/colors";
 
 export default function BrandDetail() {

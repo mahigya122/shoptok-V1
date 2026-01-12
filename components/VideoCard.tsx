@@ -1,13 +1,7 @@
 // VideoCard.tsx
 import React, { useRef, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
-import Animated, {
-  useSharedValue,
-  withSpring,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
 import { Video, ResizeMode as VideoResizeMode } from "expo-av";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,18 +21,7 @@ import { track } from "../services/analytics";
 import { supabase } from "../lib/supabaseClient";
 
 // ---------------- TYPES ----------------
-export interface Product {
-  id: string;
-  brand_id: string | null;
-  title: string;
-  description?: string;
-  price: number;
-  currency: string;
-  sizes: string[];
-  colors: string[];
-  images: { url: string }[];
-  status: string;
-}
+import type { Product } from "../types/product"; // ✅ import from global types
 
 export interface Brand {
   id?: string;
@@ -54,7 +37,7 @@ export interface VideoItem {
   likes_count?: number;
   comments_count?: number;
   brands?: Brand;
-  products?: Product;
+  products?: Product; // ✅ now uses global Product
 }
 
 interface VideoCardProps {
@@ -82,23 +65,18 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   const scale = useSharedValue(1);
   const [commentsOpen, setCommentsOpen] = useState(false);
 
-  // Effects
+  // ---------------- EFFECTS ----------------
   useEffect(() => setPlaying(!!isActive), [isActive]);
   useEffect(() => {
     if (item.id) track("view", userId, { video_id: item.id });
   }, [userId, item.id]);
 
-  // ---------------- Handlers ----------------
+  // ---------------- HANDLERS ----------------
   const handleLike = async () => {
     if (!userId) return show("Sign in to like");
 
     try {
-      // Update likes in Supabase
-      await supabase
-        .from("video_likes")
-        .upsert({ video_id: item.id, user_id: userId })
-        .throwOnError();
-
+      await supabase.from("video_likes").upsert([{ video_id: item.id, user_id: userId }]);
       runOnJS(show)("Liked");
       runOnJS(track)("like", userId, { video_id: item.id });
 
@@ -107,7 +85,6 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
       heartScale.value = withSpring(1.2);
       heartOpacity.value = withTiming(0, { duration: 700 });
 
-      // Local state interaction
       useLocalInteractions.getState().addReaction(item.id, "❤");
     } catch (error) {
       console.warn("Error liking video:", error);
@@ -117,32 +94,43 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   const handleAddToCart = async (product: Product) => {
     if (!userId) return show("Sign in to add to cart");
 
-    // Update Supabase cart
     try {
-      await supabase.from("cart").upsert({
-        user_id: userId,
+      const { data: cart } = await supabase
+        .from("carts")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .limit(1)
+        .single();
+
+      let cartId = cart?.id;
+      if (!cartId) {
+        const { data: newCart } = await supabase.from("carts").insert([{ user_id: userId }]).select().single();
+        cartId = newCart.id;
+      }
+
+      await supabase.from("cart_items").insert([{
+        cart_id: cartId,
         product_id: product.id,
         quantity: 1,
-      });
+        unit_price: product.price,
+      }]);
 
-      // Update local store
       addToCart(product);
       show("Added to cart!");
+      if (onAddToCart) onAddToCart(product);
     } catch (error) {
       console.warn("Error adding to cart:", error);
       show("Failed to add to cart");
     }
   };
 
+  // ---------------- GESTURES ----------------
   const doubleTap = Gesture.Tap().numberOfTaps(2).onStart(handleLike);
   const singleTap = Gesture.Tap().onStart(() => setPlaying((p) => !p));
   const longPress = Gesture.LongPress()
-    .onBegin(() => {
-      scale.value = withSpring(0.95);
-    })
-    .onEnd(() => {
-      scale.value = withSpring(1);
-    });
+    .onBegin(() => { scale.value = withSpring(0.95); })
+    .onEnd(() => { scale.value = withSpring(1); });
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const animatedHeartStyle = useAnimatedStyle(() => ({
@@ -168,24 +156,22 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
             useNativeControls={false}
           />
         </GestureDetector>
-      ) : (
-        <View style={[styles.video, { backgroundColor: "#000" }]} />
-      )}
+      ) : <View style={[styles.video, { backgroundColor: "#000" }]} />}
 
       <View style={[styles.overlay, { paddingBottom: insets.bottom + spacing.md }]}>
+        {/* HEADER */}
         <View style={styles.header}>
           <Avatar url={item.brands?.avatar_url} followed={false} />
           <View style={{ marginLeft: spacing.sm, flex: 1 }}>
             <Text style={styles.brand}>{item.brands?.name}</Text>
-            <Text style={styles.caption} numberOfLines={2}>
-              {item.caption}
-            </Text>
+            <Text style={styles.caption} numberOfLines={2}>{item.caption}</Text>
           </View>
           <Pressable onPress={() => onFollow && onFollow(item.brands?.id)} style={styles.followBtn}>
             <Text style={styles.followText}>Follow</Text>
           </Pressable>
         </View>
 
+        {/* ACTIONS */}
         <View style={styles.actions}>
           <Pressable onPress={() => setPlaying(!isPlaying)} style={styles.actionBtn}>
             <Text style={styles.action}>{isPlaying ? "Pause" : "Play"}</Text>
@@ -202,23 +188,17 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
           <ShareSheet url={`https://shoptok.app/video/${item.id}`} title={item.caption || "Check this out!"} />
         </View>
 
+        {/* PRODUCT BAR */}
         {item.products && (
           <View style={styles.productBar}>
             {item.products.images?.[0]?.url ? (
               <Image source={{ uri: item.products.images[0].url }} style={styles.productImg} />
-            ) : (
-              <View style={[styles.productImg, { backgroundColor: "#222" }]} />
-            )}
+            ) : <View style={[styles.productImg, { backgroundColor: "#222" }]} />}
             <View style={{ flex: 1 }}>
               <Text style={styles.productTitle}>{item.products.title}</Text>
-              <Text style={styles.productPrice}>
-                {item.products.currency} {Number(item.products.price).toFixed(2)}
-              </Text>
+              <Text style={styles.productPrice}>{item.products.currency} {Number(item.products.price).toFixed(2)}</Text>
             </View>
-            <Pressable
-              style={styles.addBtn}
-              onPress={() => item.products && handleAddToCart(item.products)}
-            >
+            <Pressable style={styles.addBtn} onPress={() => handleAddToCart(item.products!)}>
               <Text style={styles.addText}>Add</Text>
             </Pressable>
           </View>
@@ -234,6 +214,7 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   );
 }
 
+// ---------------- STYLES ----------------
 const styles = StyleSheet.create({
   container: { backgroundColor: "#000" },
   video: { ...StyleSheet.absoluteFillObject },

@@ -1,12 +1,16 @@
 import { supabase } from "./api";
 
 export async function signInWithOtp(email: string) {
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: "shoptok://" } });
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: "shoptok://" },
+  });
   if (error) throw error;
 }
 
 export async function signOut() {
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 export function onAuthStateChange(cb: (userId: string | null) => void) {

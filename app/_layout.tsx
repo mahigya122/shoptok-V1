@@ -1,12 +1,12 @@
-import React, { useEffect, useState, ReactNode } from "react";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { ActivityIndicator, Text, StyleSheet, View, Platform } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
+import { Stack, useRouter, useSegments } from "expo-router";
+import React, { ReactNode, useEffect, useState } from "react";
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import { supabase } from "../lib/supabaseClient";
-import { colors } from "../constants/colors";
 import type { User } from "@supabase/supabase-js";
+import { colors } from "../constants/colors";
+import { supabase } from "../lib/supabaseClient";
 
 /* ---------------- ERROR BOUNDARY ---------------- */
 

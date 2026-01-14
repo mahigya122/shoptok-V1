@@ -1,21 +1,21 @@
 // VideoCard.tsx
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
-import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { useEffect, useState } from "react";
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
-import Avatar from "./Avatar";
-import ShareSheet from "./ShareSheet";
-import CommentsModal from "./CommentsModal";
-import { useToast } from "./Toast";
-import { useUserStore } from "../store/userStore";
+import { track } from "../services/analytics";
 import { useCartStore } from "../store/cartStore";
 import { useLocalInteractions } from "../store/localInteractions";
-import { track } from "../services/analytics";
+import { useUserStore } from "../store/userStore";
+import Avatar from "./Avatar";
+import CommentsModal from "./CommentsModal";
+import ShareSheet from "./ShareSheet";
+import { useToast } from "./Toast";
 
 // Supabase client
 import { supabase } from "../lib/supabaseClient";

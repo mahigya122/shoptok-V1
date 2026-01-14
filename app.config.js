@@ -7,7 +7,7 @@ try {
   if (fs.existsSync(".env")) {
     config();
   }
-} catch (e) {
+} catch (_e) {
   // ignore
 }
 

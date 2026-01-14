@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Dimensions } from "react-native";
+import { View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import VideoCard from "../../components/VideoCard";
 import { useUserStore } from "../../store/userStore";

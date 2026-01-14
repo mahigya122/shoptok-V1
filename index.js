@@ -1,3 +1,6 @@
+// ---- GESTURE HANDLER MUST BE FIRST ----
+import "react-native-gesture-handler";
+
 // ---- REQUIRED POLYFILLS (FROM App.js) ----
 import { Platform } from "react-native";
 
@@ -19,17 +22,16 @@ try {
   }
 } catch {}
 
-// ---- GESTURE HANDLER MUST BE FIRST ----
-import "react-native-gesture-handler";
-
 import { registerRootComponent } from "expo";
 import { ExpoRoot } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 function Root() {
+  const ctx = require.context("./app", true, /\.([jt]sx?)$/);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ExpoRoot context={require("./app")} />
+      <ExpoRoot context={ctx} />
     </GestureHandlerRootView>
   );
 }

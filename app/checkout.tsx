@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import Constants from "expo-constants";
 import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import { useCartStore } from "../store/cartStore";
@@ -60,7 +61,14 @@ export default function CheckoutScreen() {
       }
 
       try {
-        const baseUrl = process.env.RECOMMENDATION_FUNCTION_URL;
+        const extras =
+          Constants.expoConfig?.extra ??
+          (Constants.manifest as any)?.extra ??
+          {};
+
+        const baseUrl =
+          extras.RECOMMENDATION_FUNCTION_URL ??
+          process.env.RECOMMENDATION_FUNCTION_URL;
         if (!baseUrl) {
           console.warn("RECOMMENDATION_FUNCTION_URL is not set");
           return;

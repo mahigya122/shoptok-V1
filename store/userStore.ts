@@ -11,6 +11,11 @@ export const useUserStore = create<UserState>((set) => ({
   setUserId: (id) => set({ userId: id }),
 }));
 
-// Initialize auth listener
-onAuthStateChange((id) => useUserStore.getState().setUserId(id));
-getCurrentUserId().then((id) => useUserStore.getState().setUserId(id));
+let initialized = false;
+
+// Initialize auth listener (guarded to avoid duplicate listeners in dev/HMR)
+if (!initialized) {
+  initialized = true;
+  onAuthStateChange((id) => useUserStore.getState().setUserId(id));
+  getCurrentUserId().then((id) => useUserStore.getState().setUserId(id));
+}

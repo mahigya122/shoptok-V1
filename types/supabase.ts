@@ -195,7 +195,7 @@ export async function createOrder(userId: string, amount: number, currency = "US
 /* ------------------------ STORAGE / UPLOAD ------------------------ */
 
 export async function uploadToStorage(bucket: string, path: string, file: any, contentType?: string) {
-  const { data, error } = await supabase.storage.from(bucket).upload(path, file, { contentType, upsert: false });
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType, upsert: false });
   if (error) throw error;
 
   const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);

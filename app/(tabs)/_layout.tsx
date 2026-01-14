@@ -4,6 +4,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
+/* eslint-disable react/display-name */
+
 // TabBarIconProps matches what Expo Router expects
 type TabBarIconProps = {
   color: string;

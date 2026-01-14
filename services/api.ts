@@ -1,8 +1,14 @@
 // services/api.ts
 import { supabase as supabaseClient } from "../lib/supabaseClient";
 import { Product } from "../types/product";
+import Constants from "expo-constants";
 
 export const supabase = supabaseClient;
+
+const extras =
+  Constants.expoConfig?.extra ??
+  (Constants.manifest as any)?.extra ??
+  {};
 
 // ------------------- VIDEOS -------------------
 export async function fetchFeedVideos(limit = 20) {
@@ -58,10 +64,23 @@ export async function likeVideo(videoId: string, userId: string) {
 export async function viewVideo(videoId: string, userId: string) {
   // ✅ Fixed variable name
   await supabase.from("video_views").insert([{ video_id: videoId, user_id: userId }]);
-  await supabase
+
+  // NOTE: Supabase/PostgREST does not support calling rpc() inside update() values.
+  // If you want atomic increments, create a Postgres function and call it via supabase.rpc().
+  // This fallback is non-atomic but avoids a broken update call.
+  const { data: current, error: currentErr } = await supabase
     .from("videos")
-    .update({ views_count: supabase.rpc("increment", { x: 1 }) })
+    .select("views_count")
+    .eq("id", videoId)
+    .maybeSingle();
+  if (currentErr) throw currentErr;
+
+  const nextCount = (current?.views_count ?? 0) + 1;
+  const { error: updateErr } = await supabase
+    .from("videos")
+    .update({ views_count: nextCount })
     .eq("id", videoId);
+  if (updateErr) throw updateErr;
 }
 
 export async function commentVideo(videoId: string, userId: string, content: string) {
@@ -107,12 +126,20 @@ export async function fetchFollowingFeed(userId: string) {
 }
 
 export async function fetchForYou(userId: string) {
-  const url = process.env.RECOMMENDATION_FUNCTION_URL!;
+  const url =
+    extras.RECOMMENDATION_FUNCTION_URL ??
+    process.env.RECOMMENDATION_FUNCTION_URL;
+  if (!url) {
+    throw new Error("RECOMMENDATION_FUNCTION_URL is not configured (app.config.js -> extra). ");
+  }
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, limit: 20 }),
   });
+  if (!res.ok) {
+    throw new Error(`Recommendation function failed: ${res.status} ${await res.text()}`);
+  }
   const json = await res.json();
   if (json.error) throw new Error(json.error);
   return json.data;
@@ -214,7 +241,7 @@ export async function createOrder(userId: string, amount: number, currency = "US
 
 // ------------------- STORAGE -------------------
 export async function uploadToStorage(bucket: string, path: string, file: any, contentType?: string) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .storage
     .from(bucket)
     .upload(path, file, { contentType, upsert: false });

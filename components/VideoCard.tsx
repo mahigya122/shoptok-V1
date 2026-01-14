@@ -1,8 +1,8 @@
 // VideoCard.tsx
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
 import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
-import { Video, ResizeMode as VideoResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from "expo-video";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -49,12 +49,17 @@ interface VideoCardProps {
 
 // ---------------- COMPONENT ----------------
 export default function VideoCard({ item, onAddToCart, onFollow, isActive }: VideoCardProps) {
-  const videoRef = useRef<Video>(null);
   const [isPlaying, setPlaying] = useState(!!isActive);
   const [muted, setMuted] = useState(true);
+  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
   const insets = useSafeAreaInsets();
   const windowHeight = Dimensions.get("window").height;
   const height = windowHeight - insets.top;
+
+  const player = useVideoPlayer(item.video_url ?? null, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
 
   const userId = useUserStore((s) => s.userId);
   const addToCart = useCartStore((s) => s.addToCart);
@@ -67,6 +72,25 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
 
   // ---------------- EFFECTS ----------------
   useEffect(() => setPlaying(!!isActive), [isActive]);
+
+  useEffect(() => {
+    // Reset poster state when source changes
+    setFirstFrameRendered(false);
+  }, [item.video_url]);
+
+  useEffect(() => {
+    player.muted = muted;
+  }, [muted, player]);
+
+  useEffect(() => {
+    if (!item.video_url) return;
+    if (isPlaying) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isPlaying, item.video_url, player]);
+
   useEffect(() => {
     if (item.id) track("view", userId, { video_id: item.id });
   }, [userId, item.id]);
@@ -94,19 +118,40 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   const handleAddToCart = async (product: Product) => {
     if (!userId) return show("Sign in to add to cart");
 
+    // If a parent handler is provided (e.g., feed/store sync), delegate to it to
+    // avoid double-inserting cart items.
+    if (onAddToCart) {
+      try {
+        onAddToCart(product);
+        show("Added to cart!");
+      } catch (error) {
+        console.warn("Error adding to cart:", error);
+        show("Failed to add to cart");
+      }
+      return;
+    }
+
     try {
-      const { data: cart } = await supabase
+      const { data: cart, error: cartErr } = await supabase
         .from("carts")
         .select("*")
         .eq("user_id", userId)
         .eq("status", "active")
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (cartErr) throw cartErr;
 
       let cartId = cart?.id;
       if (!cartId) {
-        const { data: newCart } = await supabase.from("carts").insert([{ user_id: userId }]).select().single();
-        cartId = newCart.id;
+        const { data: newCart, error: newCartErr } = await supabase
+          .from("carts")
+          .insert([{ user_id: userId }])
+          .select()
+          .single();
+        if (newCartErr) throw newCartErr;
+        cartId = newCart?.id;
+        if (!cartId) throw new Error("Failed to create cart");
       }
 
       await supabase.from("cart_items").insert([{
@@ -118,7 +163,6 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
 
       addToCart(product);
       show("Added to cart!");
-      if (onAddToCart) onAddToCart(product);
     } catch (error) {
       console.warn("Error adding to cart:", error);
       show("Failed to add to cart");
@@ -143,18 +187,23 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
     <Animated.View style={[styles.container, { height }, animatedStyle]}>
       {item.video_url ? (
         <GestureDetector gesture={Gesture.Exclusive(longPress, doubleTap, singleTap)}>
-          <Video
-            ref={videoRef}
-            source={{ uri: item.video_url }}
-            posterSource={item.poster_url ? { uri: item.poster_url } : undefined}
-            usePoster={!!item.poster_url}
-            style={styles.video}
-            resizeMode={VideoResizeMode.COVER}
-            isLooping
-            shouldPlay={isPlaying}
-            isMuted={muted}
-            useNativeControls={false}
-          />
+          <View style={styles.video}>
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFillObject}
+              contentFit="cover"
+              nativeControls={false}
+              surfaceType="textureView"
+              onFirstFrameRender={() => setFirstFrameRendered(true)}
+            />
+
+            {!!item.poster_url && !firstFrameRendered && (
+              <Image
+                source={{ uri: item.poster_url }}
+                style={[StyleSheet.absoluteFillObject, { resizeMode: "cover" }]}
+              />
+            )}
+          </View>
         </GestureDetector>
       ) : <View style={[styles.video, { backgroundColor: "#000" }]} />}
 

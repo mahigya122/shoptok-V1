@@ -1,5 +1,5 @@
 import React, { useEffect, useState, ReactNode } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { ActivityIndicator, Text, StyleSheet, View, Platform } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
@@ -55,6 +55,7 @@ if (Platform.OS !== "web") {
 
 export default function RootLayout() {
   const router = useRouter();
+  const segments = useSegments();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
@@ -80,8 +81,20 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user]);
+    if (loading) return;
+
+    const top = segments[0];
+    const onLogin = top === "login";
+
+    if (!user && !onLogin) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user && onLogin) {
+      router.replace("/(tabs)/home");
+    }
+  }, [loading, user, segments, router]);
 
   const extras =
     Constants.expoConfig?.extra ??
@@ -98,18 +111,18 @@ export default function RootLayout() {
       <ErrorBoundary>
         <StripeProviderComp publishableKey={stripeKey}>
           <SafeAreaView style={styles.container}>
-            {loading || !user ? (
-              <View style={styles.loading}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            />
+
+            {loading && (
+              <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Loading…</Text>
               </View>
-            ) : (
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: colors.background },
-                }}
-              />
             )}
           </SafeAreaView>
         </StripeProviderComp>
@@ -122,7 +135,12 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
+  },
   loadingText: { marginTop: 12, color: colors.textMuted },
   errorFallback: { flex: 1, justifyContent: "center", alignItems: "center" },
   errorText: { fontSize: 18, color: colors.primary, fontWeight: "700" },

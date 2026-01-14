@@ -1,19 +1,28 @@
 {
   "compilerOptions": {
-    "target": "ESNext",                       // modern JS
-    "lib": ["ES2022", "DOM"],                 // needed for JS + DOM types
-    "module": "ESNext",                        // allow ESM imports
-    "moduleResolution": "node",               // works with RN & Node modules
-    "allowSyntheticDefaultImports": true,     // lets you do default imports for CJS modules
-    "esModuleInterop": true,                  // fixes default import issues
-    "jsx": "react-jsx",                        // React 18 JSX
-    "strict": true,                            // type checking
-    "baseUrl": ".",                            // allows using absolute imports like "@/components/..."
+    "target": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
-    "skipLibCheck": true,                      // skip types for node_modules
+    "skipLibCheck": true,
     "noEmit": true
   },
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions"
+  ],
+  "extends": "expo/tsconfig.base"
 }

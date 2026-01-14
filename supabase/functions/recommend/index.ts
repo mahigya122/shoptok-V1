@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     // Simple heuristic: boost videos of followed brands, liked product categories, viewed recency
     // For demo, we query Supabase via REST (in production, use service role safely)
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL" )!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const headers = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` };

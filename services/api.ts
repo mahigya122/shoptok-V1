@@ -1,7 +1,7 @@
 // services/api.ts
+import Constants from "expo-constants";
 import { supabase as supabaseClient } from "../lib/supabaseClient";
 import { Product } from "../types/product";
-import Constants from "expo-constants";
 
 export const supabase = supabaseClient;
 
@@ -126,23 +126,17 @@ export async function fetchFollowingFeed(userId: string) {
 }
 
 export async function fetchForYou(userId: string) {
-  const url =
-    extras.RECOMMENDATION_FUNCTION_URL ??
-    process.env.RECOMMENDATION_FUNCTION_URL;
-  if (!url) {
-    throw new Error("RECOMMENDATION_FUNCTION_URL is not configured (app.config.js -> extra). ");
-  }
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, limit: 20 }),
+  // Use the Supabase client to invoke Edge Functions.
+  // This automatically includes the required `Authorization` and `apikey` headers,
+  // preventing 401 "Missing authorization header".
+  const { data, error } = await supabase.functions.invoke("recommend", {
+    body: { userId, limit: 20 },
   });
-  if (!res.ok) {
-    throw new Error(`Recommendation function failed: ${res.status} ${await res.text()}`);
+  if (error) {
+    // Keep a helpful error message for logs/UI.
+    throw new Error(`Recommendation function failed: ${error.message}`);
   }
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json.data;
+  return (data as any)?.data ?? data;
 }
 
 // ------------------- PRODUCTS -------------------

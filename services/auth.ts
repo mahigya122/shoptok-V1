@@ -3,9 +3,33 @@ import { supabase } from "./api";
 export async function signInWithOtp(email: string) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: "shoptok://" },
   });
   if (error) throw error;
+}
+
+// Email OTP (6-digit code) flow. This avoids deep-linking issues during development.
+// Note: whether Supabase sends a magic-link or an OTP depends on your Email Template
+// ({{ .ConfirmationURL }} sends a link, {{ .Token }} sends a code).
+export async function requestEmailOtp(email: string) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      // Set to false if you do NOT want auto-signup.
+      shouldCreateUser: true,
+    },
+  });
+  if (error) throw error;
+}
+
+export async function verifyEmailOtp(email: string, code: string) {
+  const token = code.replace(/\s+/g, "").trim();
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function signOut() {

@@ -84,14 +84,14 @@ export default function RootLayout() {
     if (loading) return;
 
     const top = segments[0];
-    const onLogin = top === "login";
+    const allowUnauthed = top === "login" || top === "auth";
 
-    if (!user && !onLogin) {
+    if (!user && !allowUnauthed) {
       router.replace("/login");
       return;
     }
 
-    if (user && onLogin) {
+    if (user && top === "login") {
       router.replace("/(tabs)/home");
     }
   }, [loading, user, segments, router]);

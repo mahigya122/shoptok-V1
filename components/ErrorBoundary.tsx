@@ -1,23 +1,37 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 type Props = {
-  error?: Error | null;
+  children: React.ReactNode;
 };
 
-export default function ErrorBoundary({ error }: Props) {
-  if (!error) return null;
+type State = {
+  error: Error | null;
+};
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Something went wrong</Text>
+export default class ErrorBoundary extends React.Component<Props, State> {
+  state: State = { error: null };
 
-      {/* ✅ fix: convert null → undefined */}
-      <Text style={styles.message}>
-        {error.message ?? undefined}
-      </Text>
-    </View>
-  );
+  static getDerivedStateFromError(error: Error): State {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    // Keep lightweight logging; avoid crashing the app on render errors.
+     
+    console.warn("ErrorBoundary caught", error);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Something went wrong</Text>
+        <Text style={styles.message}>{this.state.error.message}</Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

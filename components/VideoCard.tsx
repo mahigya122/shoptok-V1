@@ -1,7 +1,7 @@
 // VideoCard.tsx
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Image, Dimensions } from "react-native";
-import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -56,7 +56,12 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   const windowHeight = Dimensions.get("window").height;
   const height = windowHeight - insets.top;
 
-  const player = useVideoPlayer(item.video_url ?? null, (p) => {
+  // expo-video's hook expects a valid source. Some feeds (e.g., recommendations)
+  // can return items without a video_url; passing null/undefined can crash.
+  const videoUrl = typeof item.video_url === "string" ? item.video_url : "";
+  const FALLBACK_VIDEO_URL = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+  const player = useVideoPlayer(videoUrl || FALLBACK_VIDEO_URL, (p) => {
     p.loop = true;
     p.muted = true;
   });
@@ -83,13 +88,28 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   }, [muted, player]);
 
   useEffect(() => {
-    if (!item.video_url) return;
+    // If there is no real video URL, never attempt playback.
+    if (!videoUrl) {
+      try {
+        player.pause();
+      } catch {}
+      return;
+    }
     if (isPlaying) {
       player.play();
     } else {
       player.pause();
     }
-  }, [isPlaying, item.video_url, player]);
+  }, [isPlaying, videoUrl, player]);
+
+  useEffect(() => {
+    // Best-effort cleanup to reduce resource pressure when scrolling/unmounting.
+    return () => {
+      try {
+        player.pause();
+      } catch {}
+    };
+  }, [player]);
 
   useEffect(() => {
     if (item.id) track("view", userId, { video_id: item.id });
@@ -101,8 +121,8 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
 
     try {
       await supabase.from("video_likes").upsert([{ video_id: item.id, user_id: userId }]);
-      runOnJS(show)("Liked");
-      runOnJS(track)("like", userId, { video_id: item.id });
+      show("Liked");
+      track("like", userId, { video_id: item.id });
 
       heartOpacity.value = 1;
       heartScale.value = 0.5;
@@ -170,9 +190,13 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   };
 
   // ---------------- GESTURES ----------------
-  const doubleTap = Gesture.Tap().numberOfTaps(2).onStart(handleLike);
-  const singleTap = Gesture.Tap().onStart(() => setPlaying((p) => !p));
+  // These callbacks trigger async work (Supabase calls, React state updates), so they should run on JS.
+  const doubleTap = Gesture.Tap().runOnJS(true).numberOfTaps(2).onStart(() => {
+    void handleLike();
+  });
+  const singleTap = Gesture.Tap().runOnJS(true).onStart(() => setPlaying((p) => !p));
   const longPress = Gesture.LongPress()
+    .runOnJS(true)
     .onBegin(() => { scale.value = withSpring(0.95); })
     .onEnd(() => { scale.value = withSpring(1); });
 
@@ -185,7 +209,7 @@ export default function VideoCard({ item, onAddToCart, onFollow, isActive }: Vid
   // ---------------- RENDER ----------------
   return (
     <Animated.View style={[styles.container, { height }, animatedStyle]}>
-      {item.video_url ? (
+      {videoUrl ? (
         <GestureDetector gesture={Gesture.Exclusive(longPress, doubleTap, singleTap)}>
           <View style={styles.video}>
             <VideoView
